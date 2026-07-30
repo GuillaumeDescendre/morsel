@@ -16,3 +16,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 })
+
+// Dev-only: lets us diagnose auth from the browser console (e.g. `await supabase.rpc('whoami')`).
+if (import.meta.env.DEV) {
+  ;(window as unknown as { supabase: typeof supabase }).supabase = supabase
+}
