@@ -1,12 +1,23 @@
 import { supabase } from './supabase'
 import type { Meal } from '../types'
-import { removeMealPhoto } from './photos'
+import { removeImage } from './photos'
 
 export interface MealInput {
   title: string
   source_url: string | null
   notes: string | null
   tags: string[]
+}
+
+/** Distinct tags across every meal the user can see — used to suggest existing tags. */
+export async function fetchAllTags(): Promise<string[]> {
+  const { data, error } = await supabase.from('meals').select('tags')
+  if (error) throw error
+  const set = new Set<string>()
+  for (const row of data ?? []) {
+    for (const t of (row.tags as string[] | null) ?? []) set.add(t)
+  }
+  return [...set].sort()
 }
 
 export async function fetchMeals(listId: string): Promise<Meal[]> {
@@ -65,7 +76,7 @@ export async function deleteMeal(meal: Meal): Promise<void> {
   // Best-effort photo cleanup (row is already gone; ignore storage errors).
   if (meal.photo_path) {
     try {
-      await removeMealPhoto(meal.photo_path)
+      await removeImage(meal.photo_path)
     } catch {
       /* ignore */
     }

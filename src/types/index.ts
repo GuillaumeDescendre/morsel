@@ -13,6 +13,7 @@ export interface MealList {
   id: string
   name: string
   emoji: string | null
+  icon_path: string | null
   owner_id: string
   created_at: string
 }

@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Modal } from './Modal'
 import { Button, TextField, TextArea, cx } from './ui'
 import { useSignedUrl } from '../hooks/useSignedUrl'
-import { createMeal, updateMeal } from '../lib/meals'
-import { removeMealPhoto, uploadMealPhoto } from '../lib/photos'
+import { createMeal, fetchAllTags, updateMeal } from '../lib/meals'
+import { removeImage, uploadMealPhoto, validateImageFile } from '../lib/photos'
 import type { Meal } from '../types'
 
 export function MealFormModal({
@@ -30,6 +30,7 @@ export function MealFormModal({
   const [photoRemoved, setPhotoRemoved] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const existingUrl = useSignedUrl(!photoRemoved && meal?.photo_path ? meal.photo_path : null)
@@ -52,11 +53,21 @@ export function MealFormModal({
     setPhotoFile(null)
     setPhotoRemoved(false)
     setError(null)
+    fetchAllTags()
+      .then(setSuggestions)
+      .catch(() => setSuggestions([]))
   }, [open, meal])
 
-  const commitTag = () => {
-    const t = tagDraft.trim().toLowerCase()
-    if (t && !tags.includes(t) && tags.length < 8) setTags([...tags, t])
+  const tagSuggestions = useMemo(() => {
+    const q = tagDraft.trim().toLowerCase()
+    return suggestions
+      .filter((t) => !tags.includes(t) && (q === '' || t.includes(q)))
+      .slice(0, 12)
+  }, [suggestions, tags, tagDraft])
+
+  const addTag = (t: string) => {
+    const v = t.trim().toLowerCase()
+    if (v && !tags.includes(v) && tags.length < 8) setTags((ts) => [...ts, v])
     setTagDraft('')
   }
 
@@ -88,7 +99,7 @@ export function MealFormModal({
           const path = await uploadMealPhoto(listId, meal!.id, photoFile)
           photoPatch = { photo_path: path }
         } else if (photoRemoved && meal!.photo_path) {
-          await removeMealPhoto(meal!.photo_path)
+          await removeImage(meal!.photo_path)
           photoPatch = { photo_path: null }
         }
         await updateMeal(meal!.id, { ...fields, ...photoPatch })
@@ -138,10 +149,15 @@ export function MealFormModal({
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0]
-              if (f) {
-                setPhotoFile(f)
-                setPhotoRemoved(false)
+              if (!f) return
+              const err = validateImageFile(f)
+              if (err) {
+                setError(err)
+                return
               }
+              setError(null)
+              setPhotoFile(f)
+              setPhotoRemoved(false)
             }}
           />
         </div>
@@ -191,18 +207,30 @@ export function MealFormModal({
             className={cx(
               'w-full rounded-2xl bg-cream px-4 py-3 text-ink-900 placeholder:text-ink-300 ring-1 ring-black/[0.05] focus:outline-none focus:ring-2 focus:ring-peach-300',
             )}
-            placeholder="Type a tag, press Enter"
+            placeholder="Reuse a tag below, or type a new one + Enter"
             value={tagDraft}
             onChange={(e) => setTagDraft(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ',') {
                 e.preventDefault()
-                commitTag()
+                addTag(tagDraft)
               }
             }}
-            onBlur={commitTag}
             maxLength={24}
           />
+          {tagSuggestions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {tagSuggestions.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => addTag(t)}
+                  className="rounded-full border border-lav-200 bg-surface px-2.5 py-1 text-xs font-semibold text-lav-500 transition hover:bg-lav-100"
+                >
+                  ＋ {t}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && <p className="text-sm font-semibold text-blush-300">{error}</p>}

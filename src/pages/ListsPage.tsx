@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { useLists } from '../hooks/useLists'
-import { createList } from '../lib/lists'
 import { AvatarMenu } from '../components/AvatarMenu'
 import { ListFormModal } from '../components/ListFormModal'
+import { ListIcon } from '../components/ListIcon'
 import { Card, Spinner } from '../components/ui'
 
 export default function ListsPage() {
@@ -13,11 +13,6 @@ export default function ListsPage() {
   const [creating, setCreating] = useState(false)
 
   const firstName = (profile?.display_name ?? '').split(' ')[0] || 'there'
-
-  const handleCreate = async (name: string, emoji: string) => {
-    await createList({ name, emoji })
-    await refresh()
-  }
 
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col px-5 pb-28 pt-12">
@@ -42,9 +37,7 @@ export default function ListsPage() {
           {lists.map((list) => (
             <Link key={list.id} to={`/list/${list.id}`} className="block">
               <Card className="flex items-center gap-4 p-4 transition active:scale-[0.99]">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-peach-100 text-3xl">
-                  {list.emoji ?? '🍽️'}
-                </div>
+                <ListIcon emoji={list.emoji} iconPath={list.icon_path} size="sm" />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-lg font-bold text-ink-900">{list.name}</h2>
                   <p className="text-sm text-ink-500">
@@ -71,9 +64,8 @@ export default function ListsPage() {
       <ListFormModal
         open={creating}
         onClose={() => setCreating(false)}
-        onSubmit={handleCreate}
-        title="New meal list"
-        submitLabel="Create list"
+        list={null}
+        onSaved={refresh}
       />
     </div>
   )

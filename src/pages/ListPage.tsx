@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
-import { deleteList, fetchList, leaveList, updateList, type ListWithMeta } from '../lib/lists'
+import { deleteList, fetchList, leaveList, type ListWithMeta } from '../lib/lists'
 import { Card, Spinner } from '../components/ui'
 import { ListFormModal } from '../components/ListFormModal'
+import { ListIcon } from '../components/ListIcon'
 import { ConfirmDialog } from '../components/Modal'
 import { FullScreenLoader } from '../components/Loader'
 import { useMeals } from '../hooks/useMeals'
@@ -103,11 +104,6 @@ export default function ListPage() {
   const isOwner = list.myRole === 'owner'
   const canEdit = list.myRole === 'owner' || list.myRole === 'editor'
 
-  const handleRename = async (name: string, emoji: string) => {
-    await updateList(list.id, { name, emoji })
-    setList({ ...list, name, emoji })
-  }
-
   const handleDelete = async () => {
     setBusy(true)
     try {
@@ -167,7 +163,7 @@ export default function ListPage() {
                   }}
                   className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-ink-700 hover:bg-black/5"
                 >
-                  Rename
+                  Edit list
                 </button>
               )}
               {isOwner ? (
@@ -197,9 +193,7 @@ export default function ListPage() {
       </div>
 
       <header className="mb-6 flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-peach-100 text-4xl">
-          {list.emoji ?? '🍽️'}
-        </div>
+        <ListIcon emoji={list.emoji} iconPath={list.icon_path} size="md" />
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-extrabold text-ink-900">{list.name}</h1>
           <button onClick={() => setShareOpen(true)} className="text-sm font-semibold text-peach-600">
@@ -307,11 +301,8 @@ export default function ListPage() {
       <ListFormModal
         open={renaming}
         onClose={() => setRenaming(false)}
-        onSubmit={handleRename}
-        title="Rename list"
-        submitLabel="Save"
-        initialName={list.name}
-        initialEmoji={list.emoji ?? '🍽️'}
+        list={list}
+        onSaved={load}
       />
       <ConfirmDialog
         open={confirmDelete}

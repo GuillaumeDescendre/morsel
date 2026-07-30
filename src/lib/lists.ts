@@ -51,7 +51,10 @@ export async function createList(input: { name: string; emoji: string }): Promis
   return data as MealList
 }
 
-export async function updateList(id: string, patch: { name: string; emoji: string }) {
+export async function updateList(
+  id: string,
+  patch: { name?: string; emoji?: string; icon_path?: string | null },
+) {
   const { error } = await supabase.from('lists').update(patch).eq('id', id)
   if (error) throw error
 }
