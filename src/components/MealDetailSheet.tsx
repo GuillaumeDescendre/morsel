@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react'
 import { Modal, ConfirmDialog } from './Modal'
 import { Button } from './ui'
 import { ScoreBadge } from './ScoreBadge'
-import { RatingSlider } from './RatingSlider'
 import { useSignedUrl } from '../hooks/useSignedUrl'
 import { useAuth } from '../lib/auth'
-import { deleteMeal, rateMeal } from '../lib/meals'
+import { deleteMeal } from '../lib/meals'
 import { supabase } from '../lib/supabase'
 import { globalScore, type Meal } from '../types'
 
-function ReadonlyDimension({ label, value }: { label: string; value: number | null }) {
+function Dimension({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="flex-1 rounded-2xl bg-cream py-2.5 text-center">
       <div className="text-lg font-extrabold text-ink-900">{value ?? '–'}</div>
@@ -37,24 +36,7 @@ export function MealDetailSheet({
   const photoUrl = useSignedUrl(meal?.photo_path)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
-
-  const [taste, setTaste] = useState(5)
-  const [ease, setEase] = useState(5)
-  const [digestion, setDigestion] = useState(5)
-  const [dirty, setDirty] = useState(false)
-  const [savingRating, setSavingRating] = useState(false)
-  const [rated, setRated] = useState(false)
   const [raterName, setRaterName] = useState<string | null>(null)
-
-  // Reset local rating state whenever a different meal is shown.
-  useEffect(() => {
-    if (!meal) return
-    setTaste(meal.taste ?? 5)
-    setEase(meal.ease ?? 5)
-    setDigestion(meal.digestion ?? 5)
-    setRated(meal.taste != null)
-    setDirty(false)
-  }, [meal])
 
   // Resolve who last rated it.
   useEffect(() => {
@@ -82,22 +64,8 @@ export function MealDetailSheet({
 
   if (!meal) return null
 
-  const showScore = dirty || rated
-  const liveScore = showScore ? globalScore({ taste, ease, digestion }) : null
-
-  const handleSaveRating = async () => {
-    if (!user) return
-    setSavingRating(true)
-    try {
-      await rateMeal(meal.id, user.id, { taste, ease, digestion })
-      setRated(true)
-      setDirty(false)
-      setRaterName('you')
-      onChanged()
-    } finally {
-      setSavingRating(false)
-    }
-  }
+  const score = globalScore(meal)
+  const rated = meal.taste != null
 
   const handleDelete = async () => {
     setBusy(true)
@@ -111,12 +79,6 @@ export function MealDetailSheet({
     }
   }
 
-  const setter = { taste: setTaste, ease: setEase, digestion: setDigestion }
-  const onRate = (dim: keyof typeof setter) => (v: number) => {
-    setter[dim](v)
-    setDirty(true)
-  }
-
   return (
     <Modal open={open} onClose={onClose}>
       <div className="flex max-h-[78vh] flex-col gap-4 overflow-y-auto">
@@ -126,45 +88,18 @@ export function MealDetailSheet({
 
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-2xl font-extrabold text-ink-900">{meal.title}</h2>
-          <ScoreBadge score={liveScore} size="lg" />
+          <ScoreBadge score={score} size="lg" />
         </div>
 
-        {/* Rating */}
-        <div className="flex flex-col gap-2">
-          {canEdit ? (
-            <>
-              <RatingSlider label="Taste" emoji="😋" value={taste} onChange={onRate('taste')} />
-              <RatingSlider label="Ease" emoji="🧑‍🍳" value={ease} onChange={onRate('ease')} />
-              <RatingSlider
-                label="Digestion"
-                emoji="😌"
-                value={digestion}
-                onChange={onRate('digestion')}
-              />
-              {dirty && (
-                <Button onClick={handleSaveRating} disabled={savingRating} className="mt-1">
-                  {savingRating ? 'Saving…' : rated ? 'Update rating' : 'Save rating'}
-                </Button>
-              )}
-              <p className="text-center text-xs text-ink-500">
-                {rated
-                  ? raterName
-                    ? `Last rated by ${raterName}`
-                    : 'Rated'
-                  : 'Not rated yet — drag to rate'}
-              </p>
-            </>
-          ) : (
-            <>
-              <div className="flex gap-2">
-                <ReadonlyDimension label="Taste" value={meal.taste} />
-                <ReadonlyDimension label="Ease" value={meal.ease} />
-                <ReadonlyDimension label="Digestion" value={meal.digestion} />
-              </div>
-              {!rated && <p className="text-center text-xs text-ink-500">Not rated yet</p>}
-            </>
-          )}
+        {/* Rating (read-only — edit it in the meal form) */}
+        <div className="flex gap-2">
+          <Dimension label="Taste" value={meal.taste} />
+          <Dimension label="Ease" value={meal.ease} />
+          <Dimension label="Digestion" value={meal.digestion} />
         </div>
+        <p className="-mt-2 text-center text-xs text-ink-500">
+          {rated ? (raterName ? `Rated by ${raterName}` : 'Rated') : 'Not rated yet'}
+        </p>
 
         {meal.source_url && (
           <a
@@ -204,7 +139,7 @@ export function MealDetailSheet({
             Delete
           </Button>
           <Button className="flex-1" onClick={onEdit}>
-            Edit details
+            Edit
           </Button>
         </div>
       ) : (

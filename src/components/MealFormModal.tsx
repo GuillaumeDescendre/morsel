@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Modal } from './Modal'
 import { Button, TextField, TextArea, cx } from './ui'
+import { RatingSlider } from './RatingSlider'
+import { ScoreBadge } from './ScoreBadge'
 import { useSignedUrl } from '../hooks/useSignedUrl'
-import { createMeal, fetchAllTags, updateMeal } from '../lib/meals'
+import { useAuth } from '../lib/auth'
+import { createMeal, fetchAllTags, updateMeal, type MealRating } from '../lib/meals'
 import { removeImage, uploadMealPhoto, validateImageFile } from '../lib/photos'
-import type { Meal } from '../types'
+import { globalScore, type Meal } from '../types'
 
 export function MealFormModal({
   open,
@@ -33,6 +36,12 @@ export function MealFormModal({
   const [suggestions, setSuggestions] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
+  const { user } = useAuth()
+  const [hasRating, setHasRating] = useState(false)
+  const [taste, setTaste] = useState(5)
+  const [ease, setEase] = useState(5)
+  const [digestion, setDigestion] = useState(5)
+
   const existingUrl = useSignedUrl(!photoRemoved && meal?.photo_path ? meal.photo_path : null)
   const localPreview = useMemo(
     () => (photoFile ? URL.createObjectURL(photoFile) : null),
@@ -53,10 +62,16 @@ export function MealFormModal({
     setPhotoFile(null)
     setPhotoRemoved(false)
     setError(null)
+    setHasRating(meal?.taste != null)
+    setTaste(meal?.taste ?? 5)
+    setEase(meal?.ease ?? 5)
+    setDigestion(meal?.digestion ?? 5)
     fetchAllTags()
       .then(setSuggestions)
       .catch(() => setSuggestions([]))
   }, [open, meal])
+
+  const liveScore = hasRating ? globalScore({ taste, ease, digestion }) : null
 
   const tagSuggestions = useMemo(() => {
     const q = tagDraft.trim().toLowerCase()
@@ -80,11 +95,22 @@ export function MealFormModal({
     setBusy(true)
     setError(null)
     try {
+      const rating: MealRating = hasRating
+        ? {
+            taste,
+            ease,
+            digestion,
+            rated_by: user?.id ?? null,
+            rated_at: new Date().toISOString(),
+          }
+        : { taste: null, ease: null, digestion: null, rated_by: null, rated_at: null }
+
       const fields = {
         title: trimmed,
         source_url: sourceUrl.trim() || null,
         notes: notes.trim() || null,
         tags,
+        ...rating,
       }
 
       if (!isEdit) {
@@ -186,6 +212,45 @@ export function MealFormModal({
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
         />
+
+        {/* Rating */}
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-bold text-ink-700">Rating</span>
+            <div className="flex items-center gap-2">
+              {liveScore != null && <ScoreBadge score={liveScore} size="sm" />}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={hasRating}
+                aria-label="Rate this meal"
+                onClick={() => setHasRating((v) => !v)}
+                className={cx(
+                  'relative h-6 w-11 shrink-0 rounded-full transition',
+                  hasRating ? 'bg-peach-500' : 'bg-ink-300/40',
+                )}
+              >
+                <span
+                  className={cx(
+                    'absolute top-0.5 block h-5 w-5 rounded-full bg-white shadow transition',
+                    hasRating ? 'left-[22px]' : 'left-0.5',
+                  )}
+                />
+              </button>
+            </div>
+          </div>
+          {hasRating ? (
+            <div className="flex flex-col gap-2">
+              <RatingSlider label="Taste" emoji="😋" value={taste} onChange={setTaste} />
+              <RatingSlider label="Ease" emoji="🧑‍🍳" value={ease} onChange={setEase} />
+              <RatingSlider label="Digestion" emoji="😌" value={digestion} onChange={setDigestion} />
+            </div>
+          ) : (
+            <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink-500">
+              Not tried yet — turn on to rate taste, ease &amp; digestion.
+            </p>
+          )}
+        </div>
 
         {/* Tags */}
         <div>

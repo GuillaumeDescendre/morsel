@@ -9,6 +9,15 @@ export interface MealInput {
   tags: string[]
 }
 
+/** The shared rating fields, written together (all null = unrated). */
+export interface MealRating {
+  taste: number | null
+  ease: number | null
+  digestion: number | null
+  rated_by: string | null
+  rated_at: string | null
+}
+
 /** Distinct tags across every meal the user can see — used to suggest existing tags. */
 export async function fetchAllTags(): Promise<string[]> {
   const { data, error } = await supabase.from('meals').select('tags')
@@ -30,7 +39,10 @@ export async function fetchMeals(listId: string): Promise<Meal[]> {
   return data as Meal[]
 }
 
-export async function createMeal(listId: string, input: MealInput): Promise<Meal> {
+export async function createMeal(
+  listId: string,
+  input: MealInput & Partial<MealRating>,
+): Promise<Meal> {
   // created_by is filled server-side from auth.uid() (see migration 0004).
   const { data, error } = await supabase
     .from('meals')
@@ -43,26 +55,11 @@ export async function createMeal(listId: string, input: MealInput): Promise<Meal
 
 export async function updateMeal(
   id: string,
-  patch: Partial<MealInput> & { photo_path?: string | null },
+  patch: Partial<MealInput> & Partial<MealRating> & { photo_path?: string | null },
 ): Promise<Meal> {
   const { data, error } = await supabase
     .from('meals')
     .update(patch)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw error
-  return data as Meal
-}
-
-export async function rateMeal(
-  id: string,
-  userId: string,
-  rating: { taste: number; ease: number; digestion: number },
-): Promise<Meal> {
-  const { data, error } = await supabase
-    .from('meals')
-    .update({ ...rating, rated_by: userId, rated_at: new Date().toISOString() })
     .eq('id', id)
     .select()
     .single()
