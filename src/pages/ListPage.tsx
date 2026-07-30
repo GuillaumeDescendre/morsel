@@ -218,16 +218,13 @@ export default function ListPage() {
         </button>
       )}
 
-      {user && (
-        <MealFormModal
-          open={mealFormOpen}
-          onClose={() => setMealFormOpen(false)}
-          listId={list.id}
-          userId={user.id}
-          meal={editingMeal}
-          onSaved={refreshMeals}
-        />
-      )}
+      <MealFormModal
+        open={mealFormOpen}
+        onClose={() => setMealFormOpen(false)}
+        listId={list.id}
+        meal={editingMeal}
+        onSaved={refreshMeals}
+      />
 
       <MealDetailSheet
         open={!!selectedMeal}

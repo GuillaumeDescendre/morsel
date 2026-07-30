@@ -19,14 +19,11 @@ export async function fetchMeals(listId: string): Promise<Meal[]> {
   return data as Meal[]
 }
 
-export async function createMeal(
-  listId: string,
-  userId: string,
-  input: MealInput,
-): Promise<Meal> {
+export async function createMeal(listId: string, input: MealInput): Promise<Meal> {
+  // created_by is filled server-side from auth.uid() (see migration 0004).
   const { data, error } = await supabase
     .from('meals')
-    .insert({ list_id: listId, created_by: userId, ...input })
+    .insert({ list_id: listId, ...input })
     .select()
     .single()
   if (error) throw error

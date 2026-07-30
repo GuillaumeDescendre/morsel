@@ -10,14 +10,12 @@ export function MealFormModal({
   open,
   onClose,
   listId,
-  userId,
   meal,
   onSaved,
 }: {
   open: boolean
   onClose: () => void
   listId: string
-  userId: string
   meal: Meal | null // null = create
   onSaved: () => void
 }) {
@@ -79,7 +77,7 @@ export function MealFormModal({
       }
 
       if (!isEdit) {
-        const created = await createMeal(listId, userId, fields)
+        const created = await createMeal(listId, fields)
         if (photoFile) {
           const path = await uploadMealPhoto(listId, created.id, photoFile)
           await updateMeal(created.id, { photo_path: path })

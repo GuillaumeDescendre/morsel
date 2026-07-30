@@ -40,14 +40,11 @@ export async function fetchList(id: string, userId: string): Promise<ListWithMet
   return data ? withMeta(data as ListRow, userId) : null
 }
 
-export async function createList(input: {
-  name: string
-  emoji: string
-  ownerId: string
-}): Promise<MealList> {
+export async function createList(input: { name: string; emoji: string }): Promise<MealList> {
+  // owner_id is filled server-side from auth.uid() (see migration 0004).
   const { data, error } = await supabase
     .from('lists')
-    .insert({ name: input.name, emoji: input.emoji, owner_id: input.ownerId })
+    .insert({ name: input.name, emoji: input.emoji })
     .select()
     .single()
   if (error) throw error

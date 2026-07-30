@@ -8,15 +8,14 @@ import { ListFormModal } from '../components/ListFormModal'
 import { Card, Spinner } from '../components/ui'
 
 export default function ListsPage() {
-  const { user, profile } = useAuth()
+  const { profile } = useAuth()
   const { lists, loading, error, refresh } = useLists()
   const [creating, setCreating] = useState(false)
 
   const firstName = (profile?.display_name ?? '').split(' ')[0] || 'there'
 
   const handleCreate = async (name: string, emoji: string) => {
-    if (!user) return
-    await createList({ name, emoji, ownerId: user.id })
+    await createList({ name, emoji })
     await refresh()
   }
 
