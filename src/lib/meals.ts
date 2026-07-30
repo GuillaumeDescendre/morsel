@@ -44,6 +44,21 @@ export async function updateMeal(
   return data as Meal
 }
 
+export async function rateMeal(
+  id: string,
+  userId: string,
+  rating: { taste: number; ease: number; digestion: number },
+): Promise<Meal> {
+  const { data, error } = await supabase
+    .from('meals')
+    .update({ ...rating, rated_by: userId, rated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as Meal
+}
+
 export async function deleteMeal(meal: Meal): Promise<void> {
   const { error } = await supabase.from('meals').delete().eq('id', meal.id)
   if (error) throw error
