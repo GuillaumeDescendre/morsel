@@ -2,10 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { deleteList, fetchList, leaveList, updateList, type ListWithMeta } from '../lib/lists'
-import { Card } from '../components/ui'
+import { Card, Spinner } from '../components/ui'
 import { ListFormModal } from '../components/ListFormModal'
 import { ConfirmDialog } from '../components/Modal'
 import { FullScreenLoader } from '../components/Loader'
+import { useMeals } from '../hooks/useMeals'
+import { MealCard } from '../components/MealCard'
+import { MealFormModal } from '../components/MealFormModal'
+import { MealDetailSheet } from '../components/MealDetailSheet'
+import type { Meal } from '../types'
 
 export default function ListPage() {
   const { id } = useParams<{ id: string }>()
@@ -22,6 +27,11 @@ export default function ListPage() {
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [busy, setBusy] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const { meals, loading: mealsLoading, refresh: refreshMeals } = useMeals(id)
+  const [mealFormOpen, setMealFormOpen] = useState(false)
+  const [editingMeal, setEditingMeal] = useState<Meal | null>(null)
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
 
   const load = useCallback(async () => {
     if (!id || !user) return
@@ -161,16 +171,76 @@ export default function ListPage() {
         </div>
       </header>
 
-      {/* Meals placeholder — Phase 4 */}
-      <Card className="flex flex-col items-center p-8 text-center">
-        <div className="mb-3 text-5xl">🍽️</div>
-        <h2 className="text-lg font-bold text-ink-900">Meals coming next</h2>
-        <p className="mt-1 text-sm text-ink-500">
-          {canEdit
-            ? 'Adding, rating, and photographing meals lands in the next phase.'
-            : 'The owner can add meals here soon.'}
-        </p>
-      </Card>
+      {/* Meals */}
+      {mealsLoading ? (
+        <div className="flex justify-center py-12">
+          <Spinner className="h-8 w-8" />
+        </div>
+      ) : meals.length === 0 ? (
+        <Card className="flex flex-col items-center p-8 text-center">
+          <div className="mb-3 text-5xl">🍽️</div>
+          <h2 className="text-lg font-bold text-ink-900">No meals yet</h2>
+          <p className="mt-1 text-sm text-ink-500">
+            {canEdit
+              ? 'Add the first meal you tried — with a photo, a link, and your notes.'
+              : "Nothing here yet. The list's editors can add meals."}
+          </p>
+          {canEdit && (
+            <button
+              onClick={() => {
+                setEditingMeal(null)
+                setMealFormOpen(true)
+              }}
+              className="mt-5 rounded-full bg-peach-500 px-6 py-2.5 font-bold text-white shadow-soft transition active:scale-95"
+            >
+              Add a meal
+            </button>
+          )}
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {meals.map((m) => (
+            <MealCard key={m.id} meal={m} onClick={() => setSelectedMeal(m)} />
+          ))}
+        </div>
+      )}
+
+      {canEdit && meals.length > 0 && (
+        <button
+          onClick={() => {
+            setEditingMeal(null)
+            setMealFormOpen(true)
+          }}
+          className="fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-peach-500 px-6 py-3.5 font-bold text-white shadow-soft transition active:scale-95"
+          style={{ bottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
+          <span className="text-xl leading-none">＋</span> Add meal
+        </button>
+      )}
+
+      {user && (
+        <MealFormModal
+          open={mealFormOpen}
+          onClose={() => setMealFormOpen(false)}
+          listId={list.id}
+          userId={user.id}
+          meal={editingMeal}
+          onSaved={refreshMeals}
+        />
+      )}
+
+      <MealDetailSheet
+        open={!!selectedMeal}
+        onClose={() => setSelectedMeal(null)}
+        meal={selectedMeal}
+        canEdit={canEdit}
+        onEdit={() => {
+          setEditingMeal(selectedMeal)
+          setSelectedMeal(null)
+          setMealFormOpen(true)
+        }}
+        onChanged={refreshMeals}
+      />
 
       <ListFormModal
         open={renaming}
