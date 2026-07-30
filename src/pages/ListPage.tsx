@@ -1,0 +1,206 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../lib/auth'
+import { deleteList, fetchList, leaveList, updateList, type ListWithMeta } from '../lib/lists'
+import { Card } from '../components/ui'
+import { ListFormModal } from '../components/ListFormModal'
+import { ConfirmDialog } from '../components/Modal'
+import { FullScreenLoader } from '../components/Loader'
+
+export default function ListPage() {
+  const { id } = useParams<{ id: string }>()
+  const { user } = useAuth()
+  const navigate = useNavigate()
+
+  const [list, setList] = useState<ListWithMeta | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  const load = useCallback(async () => {
+    if (!id || !user) return
+    try {
+      const l = await fetchList(id, user.id)
+      if (!l) setNotFound(true)
+      else setList(l)
+    } finally {
+      setLoading(false)
+    }
+  }, [id, user])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    window.addEventListener('mousedown', onClick)
+    return () => window.removeEventListener('mousedown', onClick)
+  }, [menuOpen])
+
+  if (loading) return <FullScreenLoader />
+
+  if (notFound || !list) {
+    return (
+      <div className="mx-auto flex min-h-full max-w-md flex-col items-center justify-center px-5 text-center">
+        <p className="text-5xl">🤔</p>
+        <h1 className="mt-3 text-xl font-bold text-ink-900">List not found</h1>
+        <p className="mt-1 text-ink-500">It may have been deleted, or you no longer have access.</p>
+        <Link to="/" className="mt-5 font-bold text-peach-600">
+          ← Back to your lists
+        </Link>
+      </div>
+    )
+  }
+
+  const isOwner = list.myRole === 'owner'
+  const canEdit = list.myRole === 'owner' || list.myRole === 'editor'
+
+  const handleRename = async (name: string, emoji: string) => {
+    await updateList(list.id, { name, emoji })
+    setList({ ...list, name, emoji })
+  }
+
+  const handleDelete = async () => {
+    setBusy(true)
+    try {
+      await deleteList(list.id)
+      navigate('/', { replace: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleLeave = async () => {
+    if (!user) return
+    setBusy(true)
+    try {
+      await leaveList(list.id, user.id)
+      navigate('/', { replace: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="mx-auto flex min-h-full max-w-md flex-col px-5 pb-28 pt-6">
+      <div className="mb-4 flex items-center justify-between">
+        <button
+          onClick={() => navigate('/')}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-ink-700 shadow-card ring-1 ring-black/[0.04]"
+          aria-label="Back"
+        >
+          ‹
+        </button>
+
+        <div ref={menuRef} className="relative">
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-surface text-ink-700 shadow-card ring-1 ring-black/[0.04]"
+            aria-label="List options"
+          >
+            ⋯
+          </button>
+          {menuOpen && (
+            <div className="animate-fade absolute right-0 top-12 z-40 w-48 overflow-hidden rounded-2xl bg-surface p-1.5 shadow-soft ring-1 ring-black/[0.05]">
+              {canEdit && (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setRenaming(true)
+                  }}
+                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-ink-700 hover:bg-black/5"
+                >
+                  Rename
+                </button>
+              )}
+              {isOwner ? (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setConfirmDelete(true)
+                  }}
+                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-blush-300 hover:bg-blush-100"
+                >
+                  Delete list
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setConfirmLeave(true)
+                  }}
+                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-blush-300 hover:bg-blush-100"
+                >
+                  Leave list
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <header className="mb-6 flex items-center gap-4">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-peach-100 text-4xl">
+          {list.emoji ?? '🍽️'}
+        </div>
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-extrabold text-ink-900">{list.name}</h1>
+          <p className="text-sm text-ink-500">
+            {list.memberCount > 1 ? `Shared · ${list.memberCount} people` : 'Just you'}
+          </p>
+        </div>
+      </header>
+
+      {/* Meals placeholder — Phase 4 */}
+      <Card className="flex flex-col items-center p-8 text-center">
+        <div className="mb-3 text-5xl">🍽️</div>
+        <h2 className="text-lg font-bold text-ink-900">Meals coming next</h2>
+        <p className="mt-1 text-sm text-ink-500">
+          {canEdit
+            ? 'Adding, rating, and photographing meals lands in the next phase.'
+            : 'The owner can add meals here soon.'}
+        </p>
+      </Card>
+
+      <ListFormModal
+        open={renaming}
+        onClose={() => setRenaming(false)}
+        onSubmit={handleRename}
+        title="Rename list"
+        submitLabel="Save"
+        initialName={list.name}
+        initialEmoji={list.emoji ?? '🍽️'}
+      />
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete this list?"
+        message="This permanently removes the list and all its meals for everyone. This can't be undone."
+        confirmLabel="Delete"
+        danger
+        busy={busy}
+      />
+      <ConfirmDialog
+        open={confirmLeave}
+        onClose={() => setConfirmLeave(false)}
+        onConfirm={handleLeave}
+        title="Leave this list?"
+        message="You'll lose access until someone invites you again."
+        confirmLabel="Leave"
+        danger
+        busy={busy}
+      />
+    </div>
+  )
+}

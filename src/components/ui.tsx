@@ -1,4 +1,10 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react'
+import type {
+  ButtonHTMLAttributes,
+  HTMLAttributes,
+  InputHTMLAttributes,
+  ReactNode,
+  TextareaHTMLAttributes,
+} from 'react'
 
 function cx(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(' ')
@@ -24,7 +30,7 @@ export function Button({
       'bg-peach-500 text-white shadow-soft hover:bg-peach-600 focus-visible:outline-peach-300',
     soft: 'bg-peach-100 text-peach-600 hover:bg-peach-200 focus-visible:outline-peach-300',
     ghost: 'text-ink-700 hover:bg-black/5 focus-visible:outline-ink-300',
-    danger: 'bg-blush-200 text-blush-300 hover:bg-blush-300 hover:text-white',
+    danger: 'bg-blush-300 text-white shadow-soft hover:brightness-95',
   }
   return (
     <button className={cx(base, sizes[size], variants[variant], className)} {...rest}>
@@ -61,6 +67,35 @@ export function Spinner({ className }: { className?: string }) {
       role="status"
       aria-label="Loading"
     />
+  )
+}
+
+const fieldBase =
+  'w-full rounded-2xl bg-cream px-4 py-3 text-ink-900 placeholder:text-ink-300 ring-1 ring-black/[0.05] transition focus:outline-none focus:ring-2 focus:ring-peach-300'
+
+export function TextField({
+  label,
+  className,
+  ...rest
+}: InputHTMLAttributes<HTMLInputElement> & { label?: string }) {
+  return (
+    <label className="block">
+      {label && <span className="mb-1.5 block text-sm font-bold text-ink-700">{label}</span>}
+      <input className={cx(fieldBase, className)} {...rest} />
+    </label>
+  )
+}
+
+export function TextArea({
+  label,
+  className,
+  ...rest
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string }) {
+  return (
+    <label className="block">
+      {label && <span className="mb-1.5 block text-sm font-bold text-ink-700">{label}</span>}
+      <textarea className={cx(fieldBase, 'resize-none', className)} {...rest} />
+    </label>
   )
 }
 

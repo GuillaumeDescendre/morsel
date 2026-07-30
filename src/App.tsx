@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
-import HomePage from './pages/HomePage'
+import ListsPage from './pages/ListsPage'
+import ListPage from './pages/ListPage'
 
 export default function App() {
   return (
@@ -11,7 +12,15 @@ export default function App() {
         path="/"
         element={
           <ProtectedRoute>
-            <HomePage />
+            <ListsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/list/:id"
+        element={
+          <ProtectedRoute>
+            <ListPage />
           </ProtectedRoute>
         }
       />
