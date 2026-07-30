@@ -1,10 +1,11 @@
-import imageCompression from 'browser-image-compression'
 import { supabase } from './supabase'
 
 const BUCKET = 'meal-photos'
 
 /** Shrink a user-picked image before upload so mobile uploads stay fast and cheap. */
 export async function compressImage(file: File): Promise<File> {
+  // Lazy-loaded so the compression lib is code-split out of the main bundle.
+  const { default: imageCompression } = await import('browser-image-compression')
   return imageCompression(file, {
     maxSizeMB: 0.6,
     maxWidthOrHeight: 1400,

@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { Button } from '../components/ui'
 import { FullScreenLoader } from '../components/Loader'
@@ -53,7 +53,15 @@ export default function LoginPage() {
       </Button>
 
       <p className="mt-6 text-xs text-ink-300">
-        By continuing you agree to our Terms &amp; Privacy Policy.
+        By continuing you agree to our{' '}
+        <Link to="/terms" className="underline">
+          Terms
+        </Link>{' '}
+        &amp;{' '}
+        <Link to="/privacy" className="underline">
+          Privacy Policy
+        </Link>
+        .
       </p>
     </div>
   )

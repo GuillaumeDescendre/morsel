@@ -4,12 +4,15 @@ import LoginPage from './pages/LoginPage'
 import ListsPage from './pages/ListsPage'
 import ListPage from './pages/ListPage'
 import JoinPage from './pages/JoinPage'
+import { PrivacyPage, TermsPage } from './pages/LegalPages'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/join/:token" element={<JoinPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       <Route
         path="/"
         element={

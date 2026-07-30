@@ -1,32 +1,39 @@
-# React + TypeScript + Vite
+# 🍽️ Morsel
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Remember every meal you've tried — rate it, note it, photograph it, and share lists with the
+people you cook with.
 
-Currently, two official plugins are available:
+A mobile-first, installable PWA built with **React + Vite + TypeScript + Tailwind**, backed by
+**Supabase** (Postgres + Auth + Storage) and deployable to **Netlify**.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Google sign-in** (Supabase Auth)
+- **Multiple meal lists**, create / rename / delete
+- **Meals** with a recipe link, free-text notes, tags, and a photo (auto-compressed on upload)
+- **Ratings** — taste / ease / digestion (1–10) with an automatic global score
+- **Collaboration** via shareable invite links (editor / viewer roles)
+- **Search, tag filters, and sorting** within a list
+- **Row Level Security** on every table — you only see lists you own or were invited to
+- **PWA** — installs to your phone home screen, works offline for the app shell
+- Privacy Policy, Terms, and a self-service **delete account** flow
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Local development
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+cp .env.example .env.local   # then fill in your Supabase URL + publishable key
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Setup & deployment
+
+See [SETUP.md](SETUP.md) for creating the Supabase project, running the SQL migrations
+(`supabase/migrations/`), configuring Google OAuth, and deploying to Netlify.
+
+## Project structure
+
+- `src/pages/` — routed screens (login, lists, list detail, join, legal)
+- `src/components/` — UI kit, modals, meal/list cards, rating sliders
+- `src/lib/` — Supabase client, auth context, and data access (lists, meals, collab, account)
+- `supabase/migrations/` — schema, RLS policies, storage, and functions

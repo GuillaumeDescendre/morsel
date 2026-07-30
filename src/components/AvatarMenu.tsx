@@ -1,10 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../lib/auth'
+import { deleteMyAccount } from '../lib/account'
+import { ConfirmDialog } from './Modal'
 
 export function AvatarMenu() {
   const { profile, user, signOut } = useAuth()
   const [open, setOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await deleteMyAccount()
+      // signOut inside deleteMyAccount triggers the auth state change → redirect to login.
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   useEffect(() => {
     if (!open) return
@@ -45,8 +59,28 @@ export function AvatarMenu() {
           >
             Sign out
           </button>
+          <button
+            onClick={() => {
+              setOpen(false)
+              setConfirmDelete(true)
+            }}
+            className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-blush-300 transition hover:bg-blush-100"
+          >
+            Delete account
+          </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={handleDelete}
+        title="Delete your account?"
+        message="This permanently deletes your account, the lists you own, and their meals. Lists you've only joined stay with their owners. This can't be undone."
+        confirmLabel="Delete forever"
+        danger
+        busy={deleting}
+      />
     </div>
   )
 }

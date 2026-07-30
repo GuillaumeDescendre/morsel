@@ -35,6 +35,32 @@ Steps that require entering passwords or credentials are done by you — I'll ne
 We'll set this up together when we build auth: create Google OAuth credentials, paste them into
 Supabase **Authentication → Providers → Google**, and add the redirect URL. I'll walk you through it.
 
-## 5. Netlify deploy (done in Phase 8)
+## 5. Run all migrations
 
-Connect the git repo to Netlify, add the same two env vars, deploy. Details later.
+Run every file in `supabase/migrations/` in order (`0001` → `0008`) in the SQL Editor if you
+haven't already. `0008_delete_account.sql` powers the in-app "Delete account" option.
+
+## 6. Deploy to Netlify (when ready)
+
+The app is a static SPA — Netlify builds it and serves it.
+
+1. **Push the repo to GitHub** (create a repo, then `git remote add origin …` and `git push -u origin main`).
+2. In **Netlify** → **Add new site → Import from Git** → pick the repo.
+3. Build settings (Netlify usually auto-detects Vite):
+   - **Build command:** `npm run build`
+   - **Publish directory:** `dist`
+4. **Environment variables** (Site settings → Environment): add
+   - `VITE_SUPABASE_URL` = your project URL
+   - `VITE_SUPABASE_ANON_KEY` = your `sb_publishable_…` key
+5. **SPA routing:** this repo includes `public/_redirects` so deep links (e.g. `/join/<token>`)
+   resolve to `index.html`. No extra config needed.
+6. Deploy. Note your live URL, e.g. `https://your-site.netlify.app`.
+
+### After the first deploy — make auth work in production
+
+- **Supabase → Authentication → URL Configuration:** set **Site URL** to your Netlify URL and add
+  `https://your-site.netlify.app/**` to **Redirect URLs**.
+- **Google Cloud → Clients → your OAuth client:** add `https://your-site.netlify.app` to
+  **Authorized JavaScript origins**. (The redirect URI stays the Supabase callback.)
+- When your Google app is still in "Testing", only accounts you've added as **Test users** can sign
+  in — publish the OAuth consent screen when you're ready for anyone to use it.
