@@ -10,6 +10,7 @@ import { useMeals } from '../hooks/useMeals'
 import { MealCard } from '../components/MealCard'
 import { MealFormModal } from '../components/MealFormModal'
 import { MealDetailSheet } from '../components/MealDetailSheet'
+import { ShareSheet } from '../components/ShareSheet'
 import type { Meal } from '../types'
 
 export default function ListPage() {
@@ -25,6 +26,7 @@ export default function ListPage() {
   const [renaming, setRenaming] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -122,6 +124,15 @@ export default function ListPage() {
           </button>
           {menuOpen && (
             <div className="animate-fade absolute right-0 top-12 z-40 w-48 overflow-hidden rounded-2xl bg-surface p-1.5 shadow-soft ring-1 ring-black/[0.05]">
+              <button
+                onClick={() => {
+                  setMenuOpen(false)
+                  setShareOpen(true)
+                }}
+                className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-ink-700 hover:bg-black/5"
+              >
+                Members &amp; sharing
+              </button>
               {canEdit && (
                 <button
                   onClick={() => {
@@ -165,9 +176,9 @@ export default function ListPage() {
         </div>
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-extrabold text-ink-900">{list.name}</h1>
-          <p className="text-sm text-ink-500">
-            {list.memberCount > 1 ? `Shared · ${list.memberCount} people` : 'Just you'}
-          </p>
+          <button onClick={() => setShareOpen(true)} className="text-sm font-semibold text-peach-600">
+            {list.memberCount > 1 ? `Shared · ${list.memberCount} people` : 'Invite people →'}
+          </button>
         </div>
       </header>
 
@@ -225,6 +236,17 @@ export default function ListPage() {
         meal={editingMeal}
         onSaved={refreshMeals}
       />
+
+      {user && (
+        <ShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          listId={list.id}
+          isOwner={isOwner}
+          currentUserId={user.id}
+          onMembersChanged={load}
+        />
+      )}
 
       <MealDetailSheet
         open={!!selectedMeal}

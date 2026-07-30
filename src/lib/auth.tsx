@@ -14,7 +14,7 @@ interface AuthState {
   user: User | null
   profile: Profile | null
   loading: boolean
-  signInWithGoogle: () => Promise<void>
+  signInWithGoogle: (redirectTo?: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile((data as Profile | null) ?? null)
   }
 
-  // On login: redeem any pending invites addressed to this user, then load their profile.
+  // On login, load the user's profile.
   useEffect(() => {
     if (!userId) {
       setProfile(null)
@@ -53,7 +53,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     let cancelled = false
     ;(async () => {
-      await supabase.rpc('redeem_invites')
       if (!cancelled) await loadProfile(userId)
     })()
     return () => {
@@ -61,10 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [userId])
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectTo?: string) => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: { redirectTo: redirectTo ?? window.location.origin },
     })
   }
 

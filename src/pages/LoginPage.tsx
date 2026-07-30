@@ -44,7 +44,7 @@ export default function LoginPage() {
       </p>
 
       <Button
-        onClick={signInWithGoogle}
+        onClick={() => signInWithGoogle()}
         variant="soft"
         className="mt-8 w-full bg-surface shadow-card ring-1 ring-black/[0.04] hover:bg-peach-50"
       >
