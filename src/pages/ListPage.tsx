@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { deleteList, fetchList, leaveList, updateList, type ListWithMeta } from '../lib/lists'
@@ -11,7 +11,8 @@ import { MealCard } from '../components/MealCard'
 import { MealFormModal } from '../components/MealFormModal'
 import { MealDetailSheet } from '../components/MealDetailSheet'
 import { ShareSheet } from '../components/ShareSheet'
-import type { Meal } from '../types'
+import { MealsToolbar, type SortMode } from '../components/MealsToolbar'
+import { globalScore, type Meal } from '../types'
 
 export default function ListPage() {
   const { id } = useParams<{ id: string }>()
@@ -34,6 +35,31 @@ export default function ListPage() {
   const [mealFormOpen, setMealFormOpen] = useState(false)
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null)
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null)
+
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<SortMode>('recent')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+
+  const allTags = useMemo(
+    () => [...new Set(meals.flatMap((m) => m.tags))].sort(),
+    [meals],
+  )
+
+  const visibleMeals = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    let r = meals
+    if (q) r = r.filter((m) => m.title.toLowerCase().includes(q))
+    if (selectedTags.length)
+      r = r.filter((m) => selectedTags.some((t) => m.tags.includes(t)))
+    if (sort === 'score')
+      r = [...r].sort((a, b) => (globalScore(b) ?? -1) - (globalScore(a) ?? -1))
+    else if (sort === 'title')
+      r = [...r].sort((a, b) => a.title.localeCompare(b.title))
+    return r
+  }, [meals, search, selectedTags, sort])
+
+  const toggleTag = (t: string) =>
+    setSelectedTags((ts) => (ts.includes(t) ? ts.filter((x) => x !== t) : [...ts, t]))
 
   const load = useCallback(async () => {
     if (!id || !user) return
@@ -209,11 +235,28 @@ export default function ListPage() {
           )}
         </Card>
       ) : (
-        <div className="flex flex-col gap-2.5">
-          {meals.map((m) => (
-            <MealCard key={m.id} meal={m} onClick={() => setSelectedMeal(m)} />
-          ))}
-        </div>
+        <>
+          <MealsToolbar
+            search={search}
+            onSearch={setSearch}
+            sort={sort}
+            onSort={setSort}
+            allTags={allTags}
+            selectedTags={selectedTags}
+            onToggleTag={toggleTag}
+          />
+          {visibleMeals.length === 0 ? (
+            <Card className="p-6 text-center text-ink-500">
+              No meals match your search or filters.
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {visibleMeals.map((m) => (
+                <MealCard key={m.id} meal={m} onClick={() => setSelectedMeal(m)} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {canEdit && meals.length > 0 && (
