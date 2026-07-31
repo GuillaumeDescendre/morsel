@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { MealList, MemberRole } from '../types'
+import type { MealList, MemberRole, RatingDim } from '../types'
 
 export interface ListWithMeta extends MealList {
   memberCount: number
@@ -40,21 +40,22 @@ export async function fetchList(id: string, userId: string): Promise<ListWithMet
   return data ? withMeta(data as ListRow, userId) : null
 }
 
-export async function createList(input: { name: string; emoji: string }): Promise<MealList> {
+export interface ListWrite {
+  name?: string
+  emoji?: string
+  icon_path?: string | null
+  rating_enabled?: boolean
+  rating_dims?: RatingDim[]
+}
+
+export async function createList(input: ListWrite): Promise<MealList> {
   // owner_id is filled server-side from auth.uid() (see migration 0004).
-  const { data, error } = await supabase
-    .from('lists')
-    .insert({ name: input.name, emoji: input.emoji })
-    .select()
-    .single()
+  const { data, error } = await supabase.from('lists').insert(input).select().single()
   if (error) throw error
   return data as MealList
 }
 
-export async function updateList(
-  id: string,
-  patch: { name?: string; emoji?: string; icon_path?: string | null },
-) {
+export async function updateList(id: string, patch: ListWrite) {
   const { error } = await supabase.from('lists').update(patch).eq('id', id)
   if (error) throw error
 }

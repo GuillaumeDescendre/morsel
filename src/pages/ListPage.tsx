@@ -272,6 +272,8 @@ export default function ListPage() {
         listId={list.id}
         meal={editingMeal}
         onSaved={refreshMeals}
+        ratingEnabled={list.rating_enabled}
+        ratingDims={list.rating_dims}
       />
 
       {user && (
@@ -296,6 +298,8 @@ export default function ListPage() {
           setMealFormOpen(true)
         }}
         onChanged={refreshMeals}
+        ratingEnabled={list.rating_enabled}
+        ratingDims={list.rating_dims}
       />
 
       <ListFormModal

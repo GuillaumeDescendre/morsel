@@ -6,7 +6,7 @@ import { useSignedUrl } from '../hooks/useSignedUrl'
 import { useAuth } from '../lib/auth'
 import { deleteMeal } from '../lib/meals'
 import { supabase } from '../lib/supabase'
-import { globalScore, type Meal } from '../types'
+import { RATING_DIMS, globalScore, type Meal, type RatingDim } from '../types'
 
 function Dimension({ label, value }: { label: string; value: number | null }) {
   return (
@@ -24,6 +24,8 @@ export function MealDetailSheet({
   canEdit,
   onEdit,
   onChanged,
+  ratingEnabled,
+  ratingDims,
 }: {
   open: boolean
   onClose: () => void
@@ -31,6 +33,8 @@ export function MealDetailSheet({
   canEdit: boolean
   onEdit: () => void
   onChanged: () => void
+  ratingEnabled: boolean
+  ratingDims: RatingDim[]
 }) {
   const { user } = useAuth()
   const photoUrl = useSignedUrl(meal?.photo_path)
@@ -65,7 +69,8 @@ export function MealDetailSheet({
   if (!meal) return null
 
   const score = globalScore(meal)
-  const rated = meal.taste != null
+  const rated = meal.rated_at != null
+  const activeDims = RATING_DIMS.filter((d) => ratingDims.includes(d.key))
 
   const handleDelete = async () => {
     setBusy(true)
@@ -88,18 +93,22 @@ export function MealDetailSheet({
 
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-2xl font-extrabold text-ink-900">{meal.title}</h2>
-          <ScoreBadge score={score} size="lg" />
+          {ratingEnabled && <ScoreBadge score={score} size="lg" />}
         </div>
 
         {/* Rating (read-only — edit it in the meal form) */}
-        <div className="flex gap-2">
-          <Dimension label="Taste" value={meal.taste} />
-          <Dimension label="Ease" value={meal.ease} />
-          <Dimension label="Digestion" value={meal.digestion} />
-        </div>
-        <p className="-mt-2 text-center text-xs text-ink-500">
-          {rated ? (raterName ? `Rated by ${raterName}` : 'Rated') : 'Not rated yet'}
-        </p>
+        {ratingEnabled && activeDims.length > 0 && (
+          <>
+            <div className="flex gap-2">
+              {activeDims.map((d) => (
+                <Dimension key={d.key} label={d.label} value={meal[d.key]} />
+              ))}
+            </div>
+            <p className="-mt-2 text-center text-xs text-ink-500">
+              {rated ? (raterName ? `Rated by ${raterName}` : 'Rated') : 'Not rated yet'}
+            </p>
+          </>
+        )}
 
         {meal.source_url && (
           <a

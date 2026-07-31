@@ -7,7 +7,7 @@ import { useSignedUrl } from '../hooks/useSignedUrl'
 import { useAuth } from '../lib/auth'
 import { createMeal, fetchAllTags, updateMeal, type MealRating } from '../lib/meals'
 import { removeImage, uploadMealPhoto, validateImageFile } from '../lib/photos'
-import { globalScore, type Meal } from '../types'
+import { RATING_DIMS, type Meal, type RatingDim } from '../types'
 
 export function MealFormModal({
   open,
@@ -15,12 +15,16 @@ export function MealFormModal({
   listId,
   meal,
   onSaved,
+  ratingEnabled,
+  ratingDims,
 }: {
   open: boolean
   onClose: () => void
   listId: string
   meal: Meal | null // null = create
   onSaved: () => void
+  ratingEnabled: boolean
+  ratingDims: RatingDim[]
 }) {
   const isEdit = !!meal
   const [title, setTitle] = useState('')
@@ -71,7 +75,19 @@ export function MealFormModal({
       .catch(() => setSuggestions([]))
   }, [open, meal])
 
-  const liveScore = hasRating ? globalScore({ taste, ease, digestion }) : null
+  const dimValue: Record<RatingDim, number> = { taste, ease, digestion }
+  const dimSetter: Record<RatingDim, (v: number) => void> = {
+    taste: setTaste,
+    ease: setEase,
+    digestion: setDigestion,
+  }
+  const activeDims = RATING_DIMS.filter((d) => ratingDims.includes(d.key))
+  const liveScore =
+    hasRating && activeDims.length > 0
+      ? Math.round(
+          (activeDims.reduce((s, d) => s + dimValue[d.key], 0) / activeDims.length) * 10,
+        ) / 10
+      : null
 
   const tagSuggestions = useMemo(() => {
     const q = tagDraft.trim().toLowerCase()
@@ -95,11 +111,12 @@ export function MealFormModal({
     setBusy(true)
     setError(null)
     try {
-      const rating: MealRating = hasRating
+      const shouldRate = ratingEnabled && hasRating
+      const rating: MealRating = shouldRate
         ? {
-            taste,
-            ease,
-            digestion,
+            taste: ratingDims.includes('taste') ? taste : null,
+            ease: ratingDims.includes('ease') ? ease : null,
+            digestion: ratingDims.includes('digestion') ? digestion : null,
             rated_by: user?.id ?? null,
             rated_at: new Date().toISOString(),
           }
@@ -213,44 +230,52 @@ export function MealFormModal({
           rows={3}
         />
 
-        {/* Rating */}
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-bold text-ink-700">Rating</span>
-            <div className="flex items-center gap-2">
-              {liveScore != null && <ScoreBadge score={liveScore} size="sm" />}
-              <button
-                type="button"
-                role="switch"
-                aria-checked={hasRating}
-                aria-label="Rate this meal"
-                onClick={() => setHasRating((v) => !v)}
-                className={cx(
-                  'relative h-6 w-11 shrink-0 rounded-full transition',
-                  hasRating ? 'bg-peach-500' : 'bg-ink-300/40',
-                )}
-              >
-                <span
+        {/* Rating — only when this list uses ratings */}
+        {ratingEnabled && activeDims.length > 0 && (
+          <div>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-bold text-ink-700">Rating</span>
+              <div className="flex items-center gap-2">
+                {liveScore != null && <ScoreBadge score={liveScore} size="sm" />}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={hasRating}
+                  aria-label="Rate this meal"
+                  onClick={() => setHasRating((v) => !v)}
                   className={cx(
-                    'absolute top-0.5 block h-5 w-5 rounded-full bg-white shadow transition',
-                    hasRating ? 'left-[22px]' : 'left-0.5',
+                    'relative h-6 w-11 shrink-0 rounded-full transition',
+                    hasRating ? 'bg-peach-500' : 'bg-ink-300/40',
                   )}
-                />
-              </button>
+                >
+                  <span
+                    className={cx(
+                      'absolute top-0.5 block h-5 w-5 rounded-full bg-white shadow transition',
+                      hasRating ? 'left-[22px]' : 'left-0.5',
+                    )}
+                  />
+                </button>
+              </div>
             </div>
+            {hasRating ? (
+              <div className="flex flex-col gap-2">
+                {activeDims.map((d) => (
+                  <RatingSlider
+                    key={d.key}
+                    label={d.label}
+                    emoji={d.emoji}
+                    value={dimValue[d.key]}
+                    onChange={dimSetter[d.key]}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink-500">
+                Not tried yet — turn on to rate it.
+              </p>
+            )}
           </div>
-          {hasRating ? (
-            <div className="flex flex-col gap-2">
-              <RatingSlider label="Taste" emoji="😋" value={taste} onChange={setTaste} />
-              <RatingSlider label="Ease" emoji="🧑‍🍳" value={ease} onChange={setEase} />
-              <RatingSlider label="Digestion" emoji="😌" value={digestion} onChange={setDigestion} />
-            </div>
-          ) : (
-            <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink-500">
-              Not tried yet — turn on to rate taste, ease &amp; digestion.
-            </p>
-          )}
-        </div>
+        )}
 
         {/* Tags */}
         <div>

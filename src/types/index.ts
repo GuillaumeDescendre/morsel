@@ -9,11 +9,21 @@ export interface Profile {
   created_at: string
 }
 
+export type RatingDim = 'taste' | 'ease' | 'digestion'
+
+export const RATING_DIMS: { key: RatingDim; label: string; emoji: string }[] = [
+  { key: 'taste', label: 'Taste', emoji: '😋' },
+  { key: 'ease', label: 'Ease', emoji: '🧑‍🍳' },
+  { key: 'digestion', label: 'Digestion', emoji: '😌' },
+]
+
 export interface MealList {
   id: string
   name: string
   emoji: string | null
   icon_path: string | null
+  rating_enabled: boolean
+  rating_dims: RatingDim[]
   owner_id: string
   created_at: string
 }
