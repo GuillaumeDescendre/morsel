@@ -41,7 +41,6 @@ export function MealFormModal({
   const fileRef = useRef<HTMLInputElement>(null)
 
   const { user } = useAuth()
-  const [hasRating, setHasRating] = useState(false)
   const [taste, setTaste] = useState(5)
   const [ease, setEase] = useState(5)
   const [digestion, setDigestion] = useState(5)
@@ -66,7 +65,6 @@ export function MealFormModal({
     setPhotoFile(null)
     setPhotoRemoved(false)
     setError(null)
-    setHasRating(meal?.taste != null)
     setTaste(meal?.taste ?? 5)
     setEase(meal?.ease ?? 5)
     setDigestion(meal?.digestion ?? 5)
@@ -82,12 +80,10 @@ export function MealFormModal({
     digestion: setDigestion,
   }
   const activeDims = RATING_DIMS.filter((d) => ratingDims.includes(d.key))
-  const liveScore =
-    hasRating && activeDims.length > 0
-      ? Math.round(
-          (activeDims.reduce((s, d) => s + dimValue[d.key], 0) / activeDims.length) * 10,
-        ) / 10
-      : null
+  const showRating = ratingEnabled && activeDims.length > 0
+  const liveScore = showRating
+    ? Math.round((activeDims.reduce((s, d) => s + dimValue[d.key], 0) / activeDims.length) * 10) / 10
+    : null
 
   const tagSuggestions = useMemo(() => {
     const q = tagDraft.trim().toLowerCase()
@@ -111,8 +107,7 @@ export function MealFormModal({
     setBusy(true)
     setError(null)
     try {
-      const shouldRate = ratingEnabled && hasRating
-      const rating: MealRating = shouldRate
+      const rating: MealRating = showRating
         ? {
             taste: ratingDims.includes('taste') ? taste : null,
             ease: ratingDims.includes('ease') ? ease : null,
@@ -230,50 +225,24 @@ export function MealFormModal({
           rows={3}
         />
 
-        {/* Rating — only when this list uses ratings */}
-        {ratingEnabled && activeDims.length > 0 && (
+        {/* Rating — shown when this list uses ratings (configured in list settings) */}
+        {showRating && (
           <div>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-bold text-ink-700">Rating</span>
-              <div className="flex items-center gap-2">
-                {liveScore != null && <ScoreBadge score={liveScore} size="sm" />}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={hasRating}
-                  aria-label="Rate this meal"
-                  onClick={() => setHasRating((v) => !v)}
-                  className={cx(
-                    'relative h-6 w-11 shrink-0 rounded-full transition',
-                    hasRating ? 'bg-peach-500' : 'bg-ink-300/40',
-                  )}
-                >
-                  <span
-                    className={cx(
-                      'absolute top-0.5 block h-5 w-5 rounded-full bg-white shadow transition',
-                      hasRating ? 'left-[22px]' : 'left-0.5',
-                    )}
-                  />
-                </button>
-              </div>
+              {liveScore != null && <ScoreBadge score={liveScore} size="sm" />}
             </div>
-            {hasRating ? (
-              <div className="flex flex-col gap-2">
-                {activeDims.map((d) => (
-                  <RatingSlider
-                    key={d.key}
-                    label={d.label}
-                    emoji={d.emoji}
-                    value={dimValue[d.key]}
-                    onChange={dimSetter[d.key]}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-2xl bg-cream px-4 py-3 text-sm text-ink-500">
-                Not tried yet — turn on to rate it.
-              </p>
-            )}
+            <div className="flex flex-col gap-2">
+              {activeDims.map((d) => (
+                <RatingSlider
+                  key={d.key}
+                  label={d.label}
+                  emoji={d.emoji}
+                  value={dimValue[d.key]}
+                  onChange={dimSetter[d.key]}
+                />
+              ))}
+            </div>
           </div>
         )}
 
